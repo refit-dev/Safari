@@ -3,6 +3,29 @@ import { toDateTime } from "./helpers";
 import Stripe from "stripe";
 import { db } from "./db";
 
+type PeriodItem = { price?: { id?: string } | null };
+type PeriodField = 'current_period_start' | 'current_period_end';
+type PlanItem = (items: PeriodItem[]) => PeriodItem | undefined;
+
+// Typed like the removed field, which was also absent at runtime when Stripe omitted it.
+function subscriptionPeriod(subscription: object, field: PeriodField, planItem?: PlanItem): number {
+  const legacy: unknown = Reflect.get(subscription, field);
+  if (typeof legacy === 'number') return legacy;
+  const list: unknown = Reflect.get(subscription, 'items');
+  const data: unknown = list && typeof list === 'object' ? Reflect.get(list, 'data') : undefined;
+  const items = (Array.isArray(data) ? data : []).filter(
+    (item): item is PeriodItem => typeof item === 'object' && item !== null,
+  );
+  const periods = new Set(items.map((item) => Reflect.get(item, field)));
+  const chosen = periods.size === 1 ? items[0] : planItem?.(items);
+  const value: unknown = chosen ? Reflect.get(chosen, field) : undefined;
+  return (typeof value === 'number' ? value : undefined) as number;
+}
+
+function getSubscriptionPeriodEnd(subscription: object, planItem?: PlanItem): number {
+  return subscriptionPeriod(subscription, 'current_period_end', planItem);
+}
+
 
 const upsertProductRecord = async ( product : Stripe.Product ) => {
     try {
@@ -141,7 +164,7 @@ const manageSubscriptionStatusChange = async (
             stripePriceId : subscriptions.items.data[0].price.id,
             stripeCustomerId : customerId,
             stripeSubscriptionId : subscriptions.id,
-            stripeCurrentPeriodEnd : toDateTime(subscriptions.current_period_end),
+            stripeCurrentPeriodEnd : toDateTime((getSubscriptionPeriodEnd(subscriptions, (items) => items[0]))),
         }
     });
 
