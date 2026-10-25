@@ -63,7 +63,7 @@
     "socket.io-client": "^4.7.5",
     "sonner": "^1.4.41",
     "speakeasy": "^2.0.0",
-    "stripe": "^15.8.0",
+    "stripe": "^23.0.0",
     "swr": "^2.2.5",
     "tailwind-merge": "^2.2.2",
     "tailwindcss-animate": "^1.0.7",

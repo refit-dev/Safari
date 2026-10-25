@@ -17,7 +17,7 @@ export async function POST ( req : Request ) {
         const customer = await createOrRetrieveCustomer({ email : session.user?.email || "", id:session.user.id});
 
         const stripe_session = await stripe.checkout.sessions.create({
-            payment_method_types : ["card"],
+            allowed_payment_method_types : ["card"],
             billing_address_collection : "required",
             customer,
             line_items : [
